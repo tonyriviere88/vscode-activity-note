@@ -1,0 +1,287 @@
+{
+  "name": "activity-note",
+  "displayName": "Activity Note",
+  "description": "Add, edit and read markdown notes right from the activity bar.",
+  "version": "0.1.0",
+  "publisher": "activity-note",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Notebooks",
+    "Other"
+  ],
+  "keywords": [
+    "notes",
+    "markdown",
+    "notepad",
+    "activity bar"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "activityNote",
+          "title": "Activity Note",
+          "icon": "media/note.svg"
+        }
+      ]
+    },
+    "views": {
+      "activityNote": [
+        {
+          "id": "activityNote.notesList",
+          "name": "Notes",
+          "icon": "media/note.svg",
+          "contextualTitle": "Activity Note"
+        },
+        {
+          "id": "activityNote.noteContent",
+          "name": "Note",
+          "type": "webview",
+          "contextualTitle": "Activity Note"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "activityNote.notesList",
+        "contents": "No notes to show yet.\n\nFirst, choose a folder where your markdown notes will live.\n[Choose Notes Folder](command:activityNote.selectFolder)\n\nThen create your first note.\n[Add Note](command:activityNote.addNote)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "activityNote.addNote",
+        "title": "Add Note",
+        "category": "Activity Note",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "activityNote.newFolder",
+        "title": "New Folder",
+        "category": "Activity Note",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "activityNote.deleteNote",
+        "title": "Delete",
+        "category": "Activity Note",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "activityNote.renameNote",
+        "title": "Rename",
+        "category": "Activity Note",
+        "icon": "$(pencil)"
+      },
+      {
+        "command": "activityNote.selectFolder",
+        "title": "Choose Notes Folder",
+        "category": "Activity Note",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "activityNote.refresh",
+        "title": "Refresh Notes",
+        "category": "Activity Note",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "activityNote.editMode",
+        "title": "Edit",
+        "category": "Activity Note",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "activityNote.previewMode",
+        "title": "Preview",
+        "category": "Activity Note",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "activityNote.revealInExplorer",
+        "title": "Reveal Note in File Explorer",
+        "category": "Activity Note",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "activityNote.openInEditor",
+        "title": "Open in Editor",
+        "category": "Activity Note",
+        "icon": "$(go-to-file)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "activityNote.addNote",
+          "when": "view == activityNote.notesList",
+          "group": "navigation@1"
+        },
+        {
+          "command": "activityNote.newFolder",
+          "when": "view == activityNote.notesList",
+          "group": "navigation@2"
+        },
+        {
+          "command": "activityNote.selectFolder",
+          "when": "view == activityNote.notesList",
+          "group": "navigation@3"
+        },
+        {
+          "command": "activityNote.refresh",
+          "when": "view == activityNote.notesList",
+          "group": "navigation@4"
+        },
+        {
+          "command": "activityNote.editMode",
+          "when": "view == activityNote.noteContent && activityNote.hasNote && activityNote.mode == 'preview'",
+          "group": "navigation@1"
+        },
+        {
+          "command": "activityNote.previewMode",
+          "when": "view == activityNote.noteContent && activityNote.hasNote && activityNote.mode == 'edit'",
+          "group": "navigation@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "activityNote.openInEditor",
+          "when": "view == activityNote.notesList && viewItem == note",
+          "group": "inline@1"
+        },
+        {
+          "command": "activityNote.openInEditor",
+          "when": "view == activityNote.notesList && viewItem == note",
+          "group": "0_open@1"
+        },
+        {
+          "command": "activityNote.addNote",
+          "when": "view == activityNote.notesList && viewItem == folder",
+          "group": "inline@1"
+        },
+        {
+          "command": "activityNote.addNote",
+          "when": "view == activityNote.notesList && viewItem == folder",
+          "group": "1_new@1"
+        },
+        {
+          "command": "activityNote.newFolder",
+          "when": "view == activityNote.notesList && viewItem == folder",
+          "group": "1_new@2"
+        },
+        {
+          "command": "activityNote.renameNote",
+          "when": "view == activityNote.notesList && (viewItem == note || viewItem == folder)",
+          "group": "7_modify@1"
+        },
+        {
+          "command": "activityNote.deleteNote",
+          "when": "view == activityNote.notesList && (viewItem == note || viewItem == folder)",
+          "group": "7_modify@2"
+        },
+        {
+          "command": "activityNote.revealInExplorer",
+          "when": "view == activityNote.notesList && (viewItem == note || viewItem == folder)",
+          "group": "9_reveal@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "activityNote.deleteNote",
+          "when": "false"
+        },
+        {
+          "command": "activityNote.renameNote",
+          "when": "false"
+        },
+        {
+          "command": "activityNote.revealInExplorer",
+          "when": "false"
+        },
+        {
+          "command": "activityNote.openInEditor",
+          "when": "false"
+        },
+        {
+          "command": "activityNote.editMode",
+          "when": "false"
+        },
+        {
+          "command": "activityNote.previewMode",
+          "when": "false"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Activity Note",
+      "properties": {
+        "activityNote.notesFolder": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to the folder where markdown notes are stored. Leave empty and use the **Choose Notes Folder** button instead. When set, this value takes priority."
+        },
+        "activityNote.autoSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically save edits to disk shortly after you stop typing."
+        },
+        "activityNote.fileExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "md",
+            "markdown",
+            "mdx",
+            "txt",
+            "text",
+            "todo",
+            "log",
+            "rst",
+            "org",
+            "csv",
+            "tsv",
+            "json",
+            "jsonc",
+            "yaml",
+            "yml",
+            "toml",
+            "ini",
+            "mmd",
+            "mermaid"
+          ],
+          "markdownDescription": "File extensions (without the leading dot) that appear in the notes tree. Markdown files (`md`, `markdown`, `mdx`) are rendered in preview mode; other text files are shown as-is."
+        },
+        "activityNote.defaultExtension": {
+          "type": "string",
+          "default": "md",
+          "description": "Extension used for new notes when you don't type one yourself (e.g. \"todo\" becomes \"todo.md\")."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "node esbuild.js --production",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "mermaid": "^11.16.0"
+  }
+}
