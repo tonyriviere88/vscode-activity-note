@@ -3,6 +3,10 @@
 Add, edit and read markdown (and other text) notes right from the VS Code
 activity bar.
 
+<p align="center">
+  <img src="media/overview.png" alt="Activity Note: the notes tree above a rendered markdown note">
+</p>
+
 Activity Note puts a dedicated panel in the activity bar with two parts:
 
 1. **Notes** — a tree to add, delete, rename and select your notes, organise

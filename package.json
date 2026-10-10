@@ -5,6 +5,10 @@
   "version": "0.2.0",
   "publisher": "activity-note",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tonyriviere88/vscode-activity-note.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
