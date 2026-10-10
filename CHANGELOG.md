@@ -2,7 +2,7 @@
 
 All notable changes to the Activity Note extension are documented here.
 
-## [Unreleased]
+## [0.2.0]
 
 - New notes and folders are created immediately with a default name
   (`New Note.md`, `New Folder`, numbered when taken) and their name is edited
@@ -11,6 +11,8 @@ All notable changes to the Activity Note extension are documented here.
 - Inline rename with <kbd>F2</kbd> (or **Rename** in the context menu);
   <kbd>Delete</kbd> deletes the selected item. Both are rebindable keybindings.
 - Drag & drop notes and folders to move them between folders.
+- The Notes tree shows the icons of the active file icon theme (Seti,
+  Material Icon Theme, …), like the Explorer.
 - The Notes list is now a webview tree (the native tree API has no inline
   editing), with keyboard navigation and a **Collapse All** button.
 

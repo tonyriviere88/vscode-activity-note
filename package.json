@@ -2,7 +2,7 @@
   "name": "activity-note",
   "displayName": "Activity Note",
   "description": "Add, edit and read markdown notes right from the activity bar.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "activity-note",
   "license": "MIT",
   "engines": {
