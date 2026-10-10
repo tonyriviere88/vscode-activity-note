@@ -35,7 +35,12 @@ back them up, sync them, or edit them with any other tool.
   `.csv`/`.tsv` as tables, `.json`/`.jsonc` as a tree, `.mmd` diagrams, and plain
   text for the rest. The extension list is configurable.
 - ➕ **Add** notes and folders, ✏️ **rename** and 🗑️ **delete** them (right-click a
-  folder to create items inside it).
+  folder to create items inside it). New items are created right away as
+  `New Note.md` / `New Folder` with their name ready to edit inline; press
+  <kbd>F2</kbd> to rename the selected item inline and <kbd>Delete</kbd> to
+  delete it.
+- 🖱️ **Drag & drop** notes and folders onto a folder to move them (drop on the
+  empty space below the tree to move to the top level).
 - 👁️ **Preview / Edit toggle** in the view's title bar.
 - 💾 **Autosave** while you type (configurable), plus `Ctrl`/`Cmd`+`S` to save now.
 - 🎨 Rendered markdown and editor both follow your current VS Code theme.
@@ -69,8 +74,11 @@ extension loaded.
 
 ## How it works
 
-- The **Notes** view is a hierarchical `TreeDataProvider` listing sub-folders and
-  every supported text file under the selected folder.
+- The **Notes** view is a `WebviewViewProvider` that draws its own tree of
+  sub-folders and supported text files under the selected folder. A webview is
+  used instead of the native `TreeView` because the latter cannot edit names
+  inline; the tree follows the VS Code theme colours and keeps the native
+  right-click menu through `webview/context` contributions.
 - The **Note** view is a `WebviewViewProvider`. Markdown is rendered inside the
   webview with [`markdown-it`](https://github.com/markdown-it/markdown-it); the
   extension host reads and writes the underlying files.

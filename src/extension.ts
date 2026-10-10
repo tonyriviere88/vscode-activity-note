@@ -1,93 +1,83 @@
 import * as vscode from 'vscode';
-import {
-  baseName,
-  extensionOf,
-  isSameOrDescendant,
-  Note,
-  NoteEntry,
-  NotesManager,
-  parentOf,
-} from './notesManager';
-import { FolderTreeItem, NoteTreeItem, NoteTreeNode, NotesTreeProvider } from './notesTreeProvider';
+import { baseName, isSameOrDescendant, Note, NoteEntry, NotesManager, parentOf } from './notesManager';
+import { NotesListViewProvider } from './notesListViewProvider';
 import { NoteViewProvider } from './noteViewProvider';
+
+/**
+ * What a command receives when run from the Notes view: the right-clicked
+ * entry's webview context (or an inline row button), or nothing when run from
+ * a title bar button or a keybinding.
+ */
+interface CommandArg {
+  uri?: string;
+  kind?: 'note' | 'folder' | 'root';
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   const manager = new NotesManager(context);
-  const treeProvider = new NotesTreeProvider(manager);
   const viewProvider = new NoteViewProvider(context.extensionUri, manager);
 
-  const treeView = vscode.window.createTreeView<NoteTreeNode>('activityNote.notesList', {
-    treeDataProvider: treeProvider,
-    showCollapseAll: true,
+  const openNote = async (note: Note, mode: 'preview' | 'edit' = 'preview'): Promise<void> => {
+    await viewProvider.showNote(note, mode);
+    // Keep the tree selection in sync when a note is opened programmatically.
+    listProvider.reveal(note.uri);
+  };
+
+  const listProvider = new NotesListViewProvider(context.extensionUri, manager, {
+    openNote: (uri) => openNote(manager.noteFromUri(uri)),
+    renamed: (oldEntry, newEntry) => viewProvider.notifyRenamed(oldEntry.uri, newEntry.uri),
+    // A new note opens for writing once its name has been settled inline.
+    createdNoteNamed: (uri) => openNote(manager.noteFromUri(uri), 'edit'),
   });
 
   const updateTitle = (): void => {
     const folder = manager.getFolder();
-    if (folder) {
-      // Show the folder as "name (path)" in the view's title bar.
-      treeView.title = baseName(folder);
-      treeView.description = `(${folder.fsPath})`;
-      treeView.message = undefined;
-    } else {
-      treeView.title = 'Notes';
-      treeView.description = undefined;
-      treeView.message = 'No notes folder selected. Use the folder button to choose one.';
-    }
+    // Show the folder as "name (path)" in the view's title bar.
+    listProvider.setTitle(folder ? baseName(folder) : 'Notes', folder ? `(${folder.fsPath})` : undefined);
   };
   updateTitle();
 
   context.subscriptions.push(
     manager,
-    treeProvider,
-    treeView,
+    listProvider,
+    vscode.window.registerWebviewViewProvider(NotesListViewProvider.viewType, listProvider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
     vscode.window.registerWebviewViewProvider(NoteViewProvider.viewType, viewProvider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     manager.onDidChangeNotes(() => {
-      treeProvider.refresh();
+      listProvider.refresh();
       updateTitle();
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('activityNote')) {
-        treeProvider.refresh();
+        listProvider.refresh();
         updateTitle();
       }
     }),
   );
 
-  const openNote = async (note: Note, mode: 'preview' | 'edit' = 'preview'): Promise<void> => {
-    await viewProvider.showNote(note, mode);
-    // Keep the tree selection in sync when a note is opened programmatically.
-    try {
-      await treeView.reveal(new NoteTreeItem(note), { select: true, focus: false, expand: true });
-    } catch {
-      /* reveal can throw if the item is not (yet) in the tree; ignore. */
-    }
-  };
-
   /** Resolve the note/folder a command should act on. */
-  const resolveTarget = (arg?: NoteTreeNode): NoteEntry | undefined => {
-    if (arg instanceof FolderTreeItem) {
-      return arg.folder;
+  const resolveTarget = (arg?: CommandArg): NoteEntry | undefined => {
+    if (arg?.uri && arg.kind === 'note') {
+      return manager.noteFromUri(vscode.Uri.parse(arg.uri));
     }
-    if (arg instanceof NoteTreeItem) {
-      return arg.note;
+    if (arg?.uri && arg.kind === 'folder') {
+      return manager.folderFromUri(vscode.Uri.parse(arg.uri));
     }
-    const selected = treeView.selection[0];
-    if (selected instanceof FolderTreeItem) {
-      return selected.folder;
-    }
-    if (selected instanceof NoteTreeItem) {
-      return selected.note;
-    }
-    return viewProvider.currentNote;
+    return listProvider.selection ?? viewProvider.currentNote;
   };
 
   /** Decide which directory a new note/folder should be created in. */
-  const resolveParentDir = (arg?: NoteTreeNode): vscode.Uri | undefined => {
+  const resolveParentDir = (arg?: CommandArg): vscode.Uri | undefined => {
     const root = manager.getFolder();
     if (!root) {
       return undefined;
+    }
+    if (arg?.kind === 'root') {
+      // Right-click on the empty space below the entries.
+      return root;
     }
     const target = resolveTarget(arg);
     if (target?.kind === 'folder') {
@@ -127,13 +117,15 @@ export function activate(context: vscode.ExtensionContext): void {
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('activityNote.openNote', (note: Note) => openNote(note)),
-
     vscode.commands.registerCommand('activityNote.selectFolder', () => selectFolder()),
 
-    vscode.commands.registerCommand('activityNote.refresh', () => treeProvider.refresh()),
+    vscode.commands.registerCommand('activityNote.refresh', () => listProvider.refresh()),
 
-    vscode.commands.registerCommand('activityNote.addNote', async (arg?: NoteTreeNode) => {
+    vscode.commands.registerCommand('activityNote.collapseAll', () => listProvider.collapseAll()),
+
+    // New notes and folders are created right away under a default name, which
+    // is then put into inline edit mode in the tree.
+    vscode.commands.registerCommand('activityNote.addNote', async (arg?: CommandArg) => {
       if (!(await ensureFolder())) {
         return;
       }
@@ -141,23 +133,14 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!parentDir) {
         return;
       }
-      const name = await vscode.window.showInputBox({
-        prompt: 'Name of the new note',
-        placeHolder: 'My note',
-        validateInput: (value) => (value.trim().length === 0 ? 'Please enter a name.' : undefined),
-      });
-      if (!name) {
-        return;
-      }
       try {
-        const note = await manager.createNote(name, parentDir);
-        await openNote(note, 'edit');
+        await listProvider.editCreated(await manager.createUntitledNote(parentDir));
       } catch (err) {
         vscode.window.showErrorMessage(errorMessage(err));
       }
     }),
 
-    vscode.commands.registerCommand('activityNote.newFolder', async (arg?: NoteTreeNode) => {
+    vscode.commands.registerCommand('activityNote.newFolder', async (arg?: CommandArg) => {
       if (!(await ensureFolder())) {
         return;
       }
@@ -165,54 +148,23 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!parentDir) {
         return;
       }
-      const name = await vscode.window.showInputBox({
-        prompt: 'Name of the new folder',
-        placeHolder: 'My folder',
-        validateInput: (value) => (value.trim().length === 0 ? 'Please enter a name.' : undefined),
-      });
-      if (!name) {
-        return;
-      }
       try {
-        const folder = await manager.createFolder(name, parentDir);
-        await treeView.reveal(new FolderTreeItem(folder), { select: true, expand: true });
+        await listProvider.editCreated(await manager.createUntitledFolder(parentDir));
       } catch (err) {
         vscode.window.showErrorMessage(errorMessage(err));
       }
     }),
 
-    vscode.commands.registerCommand('activityNote.renameNote', async (arg?: NoteTreeNode) => {
+    vscode.commands.registerCommand('activityNote.renameNote', async (arg?: CommandArg) => {
       const target = resolveTarget(arg);
       if (!target) {
         vscode.window.showInformationMessage('Nothing selected to rename.');
         return;
       }
-      // Show the full file name (with extension) for notes; pre-select the base
-      // name so the extension is kept unless the user deliberately changes it.
-      const currentName = target.kind === 'note' ? target.fileName : target.label;
-      const ext = target.kind === 'note' ? extensionOf(currentName) : '';
-      const baseEnd = ext ? currentName.length - ext.length - 1 : currentName.length;
-      const name = await vscode.window.showInputBox({
-        prompt: `New name for the ${target.kind}`,
-        value: currentName,
-        valueSelection: [0, Math.max(baseEnd, 0)],
-        validateInput: (value) => (value.trim().length === 0 ? 'Please enter a name.' : undefined),
-      });
-      if (!name || name.trim() === currentName) {
-        return;
-      }
-      try {
-        const renamed = await manager.rename(target, name);
-        await viewProvider.notifyRenamed(target.uri, renamed.uri);
-        if (renamed.kind === 'note') {
-          await openNote(renamed, 'preview');
-        }
-      } catch (err) {
-        vscode.window.showErrorMessage(errorMessage(err));
-      }
+      await listProvider.startEdit(target.uri);
     }),
 
-    vscode.commands.registerCommand('activityNote.deleteNote', async (arg?: NoteTreeNode) => {
+    vscode.commands.registerCommand('activityNote.deleteNote', async (arg?: CommandArg) => {
       const target = resolveTarget(arg);
       if (!target) {
         vscode.window.showInformationMessage('Nothing selected to delete.');
@@ -238,14 +190,14 @@ export function activate(context: vscode.ExtensionContext): void {
       }
     }),
 
-    vscode.commands.registerCommand('activityNote.revealInExplorer', async (arg?: NoteTreeNode) => {
+    vscode.commands.registerCommand('activityNote.revealInExplorer', async (arg?: CommandArg) => {
       const target = resolveTarget(arg);
       if (target) {
         await vscode.commands.executeCommand('revealFileInOS', target.uri);
       }
     }),
 
-    vscode.commands.registerCommand('activityNote.openInEditor', async (arg?: NoteTreeNode) => {
+    vscode.commands.registerCommand('activityNote.openInEditor', async (arg?: CommandArg) => {
       const target = resolveTarget(arg);
       if (target?.kind === 'note') {
         // vscode.open uses the default/registered editor for the file type,

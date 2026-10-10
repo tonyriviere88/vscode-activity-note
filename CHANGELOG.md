@@ -2,6 +2,18 @@
 
 All notable changes to the Activity Note extension are documented here.
 
+## [Unreleased]
+
+- New notes and folders are created immediately with a default name
+  (`New Note.md`, `New Folder`, numbered when taken) and their name is edited
+  inline in the tree instead of in an input box. Escape keeps the default name.
+  An untouched markdown note's heading follows its new name.
+- Inline rename with <kbd>F2</kbd> (or **Rename** in the context menu);
+  <kbd>Delete</kbd> deletes the selected item. Both are rebindable keybindings.
+- Drag & drop notes and folders to move them between folders.
+- The Notes list is now a webview tree (the native tree API has no inline
+  editing), with keyboard navigation and a **Collapse All** button.
+
 ## [0.1.0] - Initial release
 
 - Activity bar panel with a **Notes** tree and a **Note** content viewer.

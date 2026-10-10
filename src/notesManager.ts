@@ -219,6 +219,19 @@ export class NotesManager {
     return this.toNote(parentDir, fileName);
   }
 
+  /** Create an empty note with a free default name ("New Note.md", "New Note 2.md", …). */
+  async createUntitledNote(parentDir: vscode.Uri): Promise<Note> {
+    const ext = this.defaultExtension;
+    const fileName = await this.freeName(parentDir, (suffix) => `New Note${suffix}.${ext}`);
+    return this.createNote(fileName, parentDir);
+  }
+
+  /** Create a sub-folder with a free default name ("New Folder", "New Folder 2", …). */
+  async createUntitledFolder(parentDir: vscode.Uri): Promise<NoteFolder> {
+    const name = await this.freeName(parentDir, (suffix) => `New Folder${suffix}`);
+    return this.createFolder(name, parentDir);
+  }
+
   /** Create a new sub-folder inside `parentDir`. Throws if it already exists. */
   async createFolder(rawName: string, parentDir: vscode.Uri): Promise<NoteFolder> {
     const name = this.sanitizeName(rawName);
@@ -239,12 +252,41 @@ export class NotesManager {
       return entry;
     }
     const target = vscode.Uri.joinPath(parent, newName);
-    if (await this.exists(target)) {
+    // A case-only change ("todo.md" -> "Todo.md") hits the same file on
+    // case-insensitive file systems, so it must not count as a conflict.
+    const caseOnly = target.toString().toLowerCase() === entry.uri.toString().toLowerCase();
+    if (!caseOnly && (await this.exists(target))) {
       throw new Error(`A ${entry.kind} named "${newName}" already exists here.`);
+    }
+    // Keep the seeded heading of an untouched markdown note in sync with its name.
+    const reseed = entry.kind === 'note' ? await this.untouchedSeed(entry) : false;
+    await vscode.workspace.fs.rename(entry.uri, target, { overwrite: false });
+    if (reseed && isMarkdownFile(newName)) {
+      await this.writeNote(target, `# ${this.stripExtension(newName)}\n\n`);
+    }
+    this._onDidChangeNotes.fire();
+    return entry.kind === 'note' ? this.toNote(parent, newName) : this.toFolder(target);
+  }
+
+  /**
+   * Move a note or folder into `targetDir`, keeping its name. Returns the moved
+   * entry (or the same one when it already lives there).
+   */
+  async move(entry: NoteEntry, targetDir: vscode.Uri): Promise<NoteEntry> {
+    if (entry.kind === 'folder' && isSameOrDescendant(targetDir, entry.uri)) {
+      throw new Error(`Cannot move "${entry.label}" into itself.`);
+    }
+    if (parentOf(entry.uri).toString() === targetDir.toString()) {
+      return entry;
+    }
+    const name = baseName(entry.uri);
+    const target = vscode.Uri.joinPath(targetDir, name);
+    if (await this.exists(target)) {
+      throw new Error(`A ${entry.kind} named "${name}" already exists in "${baseName(targetDir)}".`);
     }
     await vscode.workspace.fs.rename(entry.uri, target, { overwrite: false });
     this._onDidChangeNotes.fire();
-    return entry.kind === 'note' ? this.toNote(parent, newName) : this.toFolder(target);
+    return entry.kind === 'note' ? this.toNote(targetDir, name) : this.toFolder(target);
   }
 
   /** Delete a note, or a folder together with everything inside it. */
@@ -270,6 +312,33 @@ export class NotesManager {
   /** Build a `Note` descriptor from a note file URI. */
   noteFromUri(uri: vscode.Uri): Note {
     return this.toNote(parentOf(uri), baseName(uri));
+  }
+
+  /** Build a `NoteFolder` descriptor from a folder URI. */
+  folderFromUri(uri: vscode.Uri): NoteFolder {
+    return this.toFolder(uri);
+  }
+
+  /** Whether a markdown note still holds nothing but the heading it was created with. */
+  private async untouchedSeed(note: Note): Promise<boolean> {
+    if (!isMarkdownFile(note.fileName)) {
+      return false;
+    }
+    try {
+      return (await this.readNote(note.uri)) === `# ${note.label}\n\n`;
+    } catch {
+      return false;
+    }
+  }
+
+  /** The first name built by `make` ('', ' 2', ' 3', …) that is free in `dir`. */
+  private async freeName(dir: vscode.Uri, make: (suffix: string) => string): Promise<string> {
+    for (let n = 1; ; n++) {
+      const name = make(n === 1 ? '' : ` ${n}`);
+      if (!(await this.exists(vscode.Uri.joinPath(dir, name)))) {
+        return name;
+      }
+    }
   }
 
   private async exists(uri: vscode.Uri): Promise<boolean> {

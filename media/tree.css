@@ -1,0 +1,215 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  background-color: var(--vscode-sideBar-background);
+  user-select: none;
+}
+
+/* ---------- Tree ---------- */
+.tree {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  outline: none;
+}
+
+.tree.drop-root {
+  background-color: var(--vscode-list-dropBackground);
+}
+
+/* Metrics mirror the Explorer's list rows (monaco tree). */
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 22px;
+  line-height: 22px;
+  padding-right: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.row:hover {
+  background-color: var(--vscode-list-hoverBackground);
+  color: var(--vscode-list-hoverForeground, inherit);
+}
+
+.row.selected {
+  background-color: var(--vscode-list-inactiveSelectionBackground);
+  color: var(--vscode-list-inactiveSelectionForeground, inherit);
+}
+
+body.focused .tree:focus-within .row.selected {
+  background-color: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground, inherit);
+  outline: 1px solid var(--vscode-list-focusOutline, transparent);
+  outline-offset: -1px;
+}
+
+.row.drop-target,
+.row.drop-target:hover {
+  background-color: var(--vscode-list-dropBackground);
+}
+
+body.dragging .row:hover:not(.drop-target) {
+  background-color: transparent;
+}
+
+.twistie {
+  flex-shrink: 0;
+  width: 16px;
+  height: 100%;
+  padding-right: 6px;
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(3px);
+}
+
+/* File icon theme icon: either a background image or a font glyph in ::before. */
+.icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 22px;
+  padding-right: 6px;
+  box-sizing: content-box;
+  background-size: 16px;
+  background-position: left center;
+  background-repeat: no-repeat;
+  -webkit-font-smoothing: antialiased;
+}
+
+.icon::before {
+  display: inline-block;
+  width: 16px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  vertical-align: top;
+}
+
+.label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Inline row actions ---------- */
+.actions {
+  display: none;
+  flex: 0 0 auto;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+.row:hover .actions,
+body.focused .tree:focus-within .row.selected .actions {
+  display: flex;
+}
+
+.row.editing .actions,
+body.dragging .actions {
+  display: none !important;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.action:hover {
+  background-color: var(--vscode-toolbar-hoverBackground);
+}
+
+/* ---------- Inline rename ---------- */
+.rename {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0 3px;
+  font: inherit;
+  color: var(--vscode-input-foreground);
+  background-color: var(--vscode-input-background);
+  border: 1px solid var(--vscode-focusBorder);
+  outline: none;
+  user-select: text;
+}
+
+.rename.invalid {
+  border-color: var(--vscode-inputValidation-errorBorder);
+}
+
+.rename-error {
+  position: absolute;
+  z-index: 10;
+  top: 21px;
+  left: 0;
+  right: 0;
+  padding: 2px 6px;
+  line-height: 1.4;
+  white-space: normal;
+  color: var(--vscode-inputValidation-errorForeground, var(--vscode-foreground));
+  background-color: var(--vscode-inputValidation-errorBackground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+}
+
+/* ---------- Welcome content ---------- */
+.welcome {
+  padding: 4px 20px 12px;
+  cursor: default;
+}
+
+.welcome p {
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.welcome-button {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin: 8px auto 0;
+  padding: 4px 8px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  font: inherit;
+  line-height: 18px;
+  text-align: center;
+  color: var(--vscode-button-foreground);
+  background-color: var(--vscode-button-background);
+  cursor: pointer;
+}
+
+.welcome-button:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.welcome-button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}

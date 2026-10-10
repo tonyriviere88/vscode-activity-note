@@ -7,6 +7,9 @@
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
       "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      // The extension spawns no child processes; auto-attach injects a
+      // NODE_OPTIONS bootloader into the extension host, which can make it abort.
+      "autoAttachChildProcesses": false,
       "preLaunchTask": "npm: compile"
     }
   ]

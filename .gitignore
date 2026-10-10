@@ -2,6 +2,10 @@ node_modules/
 dist/
 media/viewer.js
 media/viewer.js.map
+media/tree.js
+media/tree.js.map
+media/codicon.css
+media/codicon.ttf
 media/mermaid.js
 *.vsix
 .DS_Store

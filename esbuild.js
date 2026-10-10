@@ -1,4 +1,6 @@
 const esbuild = require('esbuild');
+const fs = require('fs');
+const path = require('path');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -20,7 +22,16 @@ const problemReporter = {
   },
 };
 
+/** VS Code's own icon font, used by the Notes tree webview for chevrons and buttons. */
+function copyCodicons() {
+  for (const file of ['codicon.css', 'codicon.ttf']) {
+    fs.copyFileSync(path.join('node_modules', '@vscode', 'codicons', 'dist', file), path.join('media', file));
+  }
+}
+
 async function main() {
+  copyCodicons();
+
   /** The extension host bundle (Node / CommonJS). */
   const extensionCtx = await esbuild.context({
     entryPoints: ['src/extension.ts'],
@@ -50,6 +61,20 @@ async function main() {
     plugins: [problemReporter],
   });
 
+  /** The Notes tree webview bundle (browser / IIFE). */
+  const treeCtx = await esbuild.context({
+    entryPoints: ['src/webview/tree.ts'],
+    bundle: true,
+    format: 'iife',
+    platform: 'browser',
+    target: 'es2020',
+    outfile: 'media/tree.js',
+    sourcemap: !production,
+    minify: production,
+    logLevel: 'silent',
+    plugins: [problemReporter],
+  });
+
   /**
    * Mermaid is large (~3 MB), so it lives in its own bundle that the webview
    * loads on demand — only when a note actually contains a diagram.
@@ -67,7 +92,7 @@ async function main() {
     plugins: [problemReporter],
   });
 
-  const contexts = [extensionCtx, webviewCtx, mermaidCtx];
+  const contexts = [extensionCtx, webviewCtx, treeCtx, mermaidCtx];
   if (watch) {
     await Promise.all(contexts.map((ctx) => ctx.watch()));
     console.log('[watch] watching for changes...');

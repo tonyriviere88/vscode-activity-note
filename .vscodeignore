@@ -11,4 +11,8 @@ tsconfig.json
 !media/note.svg
 !media/viewer.js
 !media/viewer.css
+!media/tree.js
+!media/tree.css
+!media/codicon.css
+!media/codicon.ttf
 !media/mermaid.js
