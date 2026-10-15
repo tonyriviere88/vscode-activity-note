@@ -466,6 +466,40 @@ function toggleTaskAtLine(lineIndex: number, checked: boolean): void {
 }
 
 /* ------------------------------------------------------------------ *
+ * Copying from the preview
+ * ------------------------------------------------------------------ */
+
+// Text shown with `white-space: pre*` (plain-text files, code blocks) keeps its
+// line breaks as bare '\n' characters. Chromium's native HTML copy leaves them
+// that way, and rich-text targets then collapse them into spaces. Write the
+// clipboard ourselves so both flavours keep the line breaks.
+previewEl.addEventListener('copy', (event) => {
+  const selection = document.getSelection();
+  if (!selection || selection.isCollapsed || selection.rangeCount === 0 || !event.clipboardData) {
+    return;
+  }
+  const range = selection.getRangeAt(0);
+  const ancestor =
+    range.commonAncestorContainer instanceof Element
+      ? range.commonAncestorContainer
+      : range.commonAncestorContainer.parentElement;
+  if (!ancestor) {
+    return;
+  }
+
+  const holder = document.createElement('div');
+  holder.appendChild(range.cloneContents());
+  // Inside a preformatted block the whole fragment is text: keep it preformatted.
+  // Elsewhere, code blocks in the fragment already arrive as <pre>.
+  const preformatted = getComputedStyle(ancestor).whiteSpace.startsWith('pre');
+  const html = preformatted ? `<pre>${holder.innerHTML}</pre>` : holder.innerHTML;
+
+  event.clipboardData.setData('text/plain', selection.toString());
+  event.clipboardData.setData('text/html', html);
+  event.preventDefault();
+});
+
+/* ------------------------------------------------------------------ *
  * Shared rendering
  * ------------------------------------------------------------------ */
 

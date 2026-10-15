@@ -68,7 +68,9 @@ body.dragging .row:hover:not(.drop-target) {
   background-color: transparent;
 }
 
-.twistie {
+/* `.row >` outranks codicon.css's `.codicon[class*='codicon-'] { display: inline-block }`,
+   which would otherwise drop the flex centring and pin the chevron to the top of the row. */
+.row > .twistie {
   flex-shrink: 0;
   width: 16px;
   height: 100%;
